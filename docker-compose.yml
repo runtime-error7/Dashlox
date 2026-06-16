@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  dashlox-app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data_in:/app/data_in
+    environment:
+      - OLLAMA_HOST=http://ollama-service:11434
+
+  ollama-service:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_storage:/root/.ollama
+
+volumes:
+  ollama_storage:
