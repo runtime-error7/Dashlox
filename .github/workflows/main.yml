@@ -1,0 +1,48 @@
+name: Build and Release Dashlox Executables
+
+# This tells the robot to ONLY run when you push a new version tag (e.g., git tag v1.0.0)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    name: Build Windows Executables
+    runs-on: windows-latest
+
+    steps:
+    - name: 📥 Checkout Repository Code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' # 3.11 is highly stable for PyInstaller
+
+    - name: 📦 Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: 🔨 Build Dashlox_Setup.exe (The Installer)
+      run: |
+        # Builds the setup file as a single console application
+        pyinstaller --onefile src/backend/installer.py --name Dashlox_Setup
+
+    - name: 🔨 Build Dashlox.exe (The Main App)
+      run: |
+        # Builds the main app as a hidden-window application (--windowed)
+        # It also bundles the entire frontend folder inside the .exe (--add-data)
+        pyinstaller --onefile --windowed --add-data "src/frontend;src/frontend" src/backend/main.py --name Dashlox
+
+    - name: 🚀 Create GitHub Release and Upload Files
+      uses: softprops/action-gh-release@v2
+      with:
+        # This grabs both completed .exe files from the 'dist' folder and uploads them
+        files: |
+          dist/Dashlox_Setup.exe
+          dist/Dashlox.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
