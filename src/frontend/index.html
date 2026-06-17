@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashlox — Local AI Workspace</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="css/style.css">
+    <script defer src="js/app.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <header class="border-b border-slate-800 p-4 flex justify-between items-center bg-slate-950 shadow-md">
+        <h1 class="text-xl font-bold tracking-wider text-indigo-400 flex items-center gap-2">
+            ⚡ DASHLOX
+        </h1>
+        <div id="file-status" class="text-xs bg-slate-800 px-3 py-1.5 rounded-md text-slate-400 border border-slate-700">
+            <span class="animate-pulse inline-block w-2 h-2 rounded-full bg-yellow-500 mr-1"></span>
+            Waiting for local CSV drop...
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        
+        <main class="flex-1 p-6 flex flex-col gap-4 overflow-y-auto relative">
+            <div class="flex justify-between items-center bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                <span class="text-sm font-semibold text-slate-300">Interactive Visual Workspace</span>
+                <button id="eject-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-1.5 rounded transition shadow-lg shadow-indigo-900/50">
+                    Eject Code ⚡
+                </button>
+            </div>
+            
+            <div class="flex-1 min-h-[400px] bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center p-6 shadow-inner relative">
+                <canvas id="dashloxChart"></canvas>
+                <div id="chart-placeholder" class="absolute text-slate-600 text-sm flex flex-col items-center gap-2">
+                    <svg class="w-12 h-12 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Awaiting AI Chart Generation
+                </div>
+            </div>
+        </main>
+
+        <aside class="w-[350px] border-l border-slate-800 bg-slate-950 flex flex-col shadow-2xl z-10">
+            <div class="p-4 border-b border-slate-800 font-semibold text-sm text-slate-300 flex items-center gap-2">
+                🤖 Local AI Analyst
+            </div>
+            
+            <div id="chat-history" class="flex-1 p-4 overflow-y-auto flex flex-col gap-4 text-sm custom-scrollbar">
+                <div class="bg-slate-800 p-3 rounded-lg rounded-tl-none text-slate-300 border border-slate-700">
+                    Drop a database file onto your local <b>data_in/</b> directory. Once loaded, tell me how you want to visualize it!
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-slate-800 bg-slate-900">
+                <div class="flex gap-2">
+                    <input id="user-input" type="text" placeholder="e.g., 'Make a bar chart of revenue'" class="flex-1 bg-slate-950 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-600 transition" disabled>
+                    <button id="send-btn" class="bg-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed text-white" disabled>
+                        Send
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+</body>
+</html>
