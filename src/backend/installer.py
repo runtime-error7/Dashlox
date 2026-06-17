@@ -4,40 +4,60 @@ import time
 import json
 import urllib.request
 from urllib.error import URLError
+import subprocess
 
-# The AI model we are using. Qwen2.5 1.5B is incredibly fast and smart for JSON/Code.
+# --- CONFIGURATION ---
 MODEL_NAME = "qwen2.5:1.5b"
 OLLAMA_API_BASE = "http://127.0.0.1:11434"
 
+# ⚠️ Change this to your actual GitHub URL once you publish the repository!
+GITHUB_EXE_URL = "https://github.com/runtime-error7/Dashlox/releases/latest/download/Dashlox.exe"
+
 def print_banner():
-    print("\n" + "="*50)
-    print("⚡           DASHLOX SYSTEM INSTALLER           ⚡")
-    print("="*50)
+    print("\n" + "="*55)
+    print("⚡           DASHLOX SYSTEM INSTALLER            ⚡")
+    print("="*55)
     print("Initializing your private, offline AI environment...\n")
 
-def setup_workspace():
-    print("📂 Step 1: Mapping Local Workspace...")
+def setup_desktop_workspace():
+    print("📂 Step 1: Building Workspace on your Desktop...")
     
-    # Resolve the correct path whether running as a .py script or compiled .exe
-    if getattr(sys, 'frozen', False):
-        base_dir = os.path.dirname(sys.executable)
-    else:
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-        
-    data_dir = os.path.join(base_dir, "data_in")
+    # Get the user's Desktop path
+    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+    workspace_dir = os.path.join(desktop_path, "Dashlox_Workspace")
+    data_dir = os.path.join(workspace_dir, "data_in")
     
     try:
         os.makedirs(data_dir, exist_ok=True)
-        # Create the .keep file so the folder isn't empty
+        # Create the .keep file
         with open(os.path.join(data_dir, ".keep"), "w") as f:
             f.write("# Dashlox Drop Zone: Drop your CSV and SQLite files here!\n")
-        print(f"   [OK] Magic folder created at: {data_dir}")
+        print(f"   [OK] Workspace created at: {workspace_dir}")
+        return workspace_dir
     except Exception as e:
         print(f"   [ERROR] Could not create workspace: {e}")
         sys.exit(1)
 
+def download_main_app(workspace_dir):
+    print("\n⬇️  Step 2: Downloading the Dashlox Engine...")
+    exe_path = os.path.join(workspace_dir, "Dashlox.exe")
+    
+    try:
+        req = urllib.request.Request(GITHUB_EXE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response, open(exe_path, 'wb') as out_file:
+            # We don't stream progress here to keep it simple, just grab the file
+            data = response.read()
+            out_file.write(data)
+        print("   [OK] Dashlox Engine successfully downloaded!")
+        return exe_path
+    except Exception as e:
+        print("   [WARNING] Could not download Dashlox.exe from GitHub.")
+        print(f"   Error: {e}")
+        print("   (If you haven't published your GitHub release yet, this is normal.)")
+        return None
+
 def check_ollama_running():
-    print("\n🔌 Step 2: Verifying Local AI Engine (Ollama)...")
+    print("\n🔌 Step 3: Verifying Local AI Engine (Ollama)...")
     try:
         req = urllib.request.Request(OLLAMA_API_BASE)
         with urllib.request.urlopen(req, timeout=5) as response:
@@ -53,11 +73,10 @@ def check_ollama_running():
         sys.exit(1)
 
 def pull_ai_model():
-    print(f"\n🧠 Step 3: Downloading AI Model weights ({MODEL_NAME})...")
+    print(f"\n🧠 Step 4: Downloading AI Model weights ({MODEL_NAME})...")
     print("   (This requires internet, but only happens ONCE. Please be patient.)\n")
     
     url = f"{OLLAMA_API_BASE}/api/pull"
-    # We set stream to True so we can give the user real-time download progress
     payload = json.dumps({"name": MODEL_NAME, "stream": True}).encode('utf-8')
     req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
     
@@ -66,26 +85,51 @@ def pull_ai_model():
             for line in response:
                 if line:
                     data = json.loads(line.decode('utf-8'))
-                    
-                    # If the API provides byte counts, calculate the percentage
                     if "completed" in data and "total" in data and data["total"] > 0:
                         percent = (data["completed"] / data["total"]) * 100
-                        # The \r overwrites the current terminal line to create a live updating bar
                         print(f"\r   Downloading: [{percent:5.1f}%] {data.get('status', '')}", end="", flush=True)
                     else:
                         print(f"\r   Status: {data.get('status', 'Processing...'):<40}", end="", flush=True)
-                        
             print("\n\n   [OK] AI Model successfully installed and verified!")
-            
     except Exception as e:
         print(f"\n   [ERROR] Failed to download the model: {e}")
         sys.exit(1)
+
+def create_desktop_shortcut(workspace_dir, exe_path):
+    if not exe_path or not os.path.exists(exe_path):
+        return
+        
+    print("\n🔗 Step 5: Creating Desktop Shortcut...")
+    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+    shortcut_path = os.path.join(desktop_path, "Dashlox.lnk")
+    
+    # We use a tiny VBScript payload to create a Windows shortcut cleanly without extra libraries
+    vbs_script = f"""
+    Set oWS = WScript.CreateObject("WScript.Shell")
+    sLinkFile = "{shortcut_path}"
+    Set oLink = oWS.CreateShortcut(sLinkFile)
+    oLink.TargetPath = "{exe_path}"
+    oLink.WorkingDirectory = "{workspace_dir}"
+    oLink.Description = "Launch Dashlox Offline AI"
+    oLink.Save
+    """
+    
+    vbs_path = os.path.join(workspace_dir, "createshortcut.vbs")
+    with open(vbs_path, "w") as f:
+        f.write(vbs_script)
+        
+    subprocess.call(['cscript.exe', vbs_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    os.remove(vbs_path)
+    print("   [OK] Desktop shortcut created!")
 
 if __name__ == "__main__":
     print_banner()
     time.sleep(1)
     
-    setup_workspace()
+    workspace = setup_desktop_workspace()
+    time.sleep(0.5)
+    
+    exe_location = download_main_app(workspace)
     time.sleep(0.5)
     
     check_ollama_running()
@@ -93,9 +137,10 @@ if __name__ == "__main__":
     
     pull_ai_model()
     
-    print("\n" + "="*50)
+    create_desktop_shortcut(workspace, exe_location)
+    
+    print("\n" + "="*55)
     print("🎉 DASHLOX SETUP COMPLETE! YOU ARE READY TO GO. 🎉")
-    print("="*50)
-    print("You can now safely close this window.")
-    print("Run 'Dashlox.exe' anytime to start your offline dashboard.")
+    print("="*55)
+    print("Look at your Desktop! You will see your new Dashlox folder and shortcut.")
     input("\nPress Enter to exit...")
